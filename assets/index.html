@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Irondom</title>
+<style>
+:root { --bg:#0f172a; --card:#1e293b; --fg:#e2e8f0; --accent:#38bdf8; --muted:#94a3b8; }
+* { box-sizing: border-box; }
+body { margin:0; font-family: system-ui, -apple-system, sans-serif; background:var(--bg); color:var(--fg); }
+header { padding:1rem; display:flex; justify-content:space-between; align-items:center; background:#0b1220; position:sticky; top:0; }
+h1 { margin:0; font-size:1.2rem; }
+.container { padding:1rem; max-width:1200px; margin:0 auto; }
+.grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap:1rem; }
+.card { background:var(--card); border-radius:12px; padding:1rem; box-shadow:0 4px 12px rgba(0,0,0,.3); }
+.card h2 { margin:0 0 .5rem; font-size:1rem; color:var(--accent); }
+.muted { color:var(--muted); font-size:.85rem; }
+.btn { background:var(--accent); color:#0f172a; border:none; padding:.5rem .8rem; border-radius:8px; cursor:pointer; font-weight:600; }
+.row { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+input,select { background:#0b1220; color:var(--fg); border:1px solid #334155; padding:.4rem .6rem; border-radius:6px; }
+@media (max-width:600px){ header{flex-direction:column;gap:.5rem;} }
+</style>
+</head>
+<body>
+<header>
+  <h1>Irondom</h1>
+  <div class="row">
+    <span id="status" class="muted">loading...</span>
+    <button class="btn" onclick="refresh()">Refresh</button>
+  </div>
+</header>
+<main class="container">
+  <section>
+    <h2>Devices</h2>
+    <div id="devices" class="grid"></div>
+  </section>
+  <section style="margin-top:1.5rem;">
+    <h2>Automations</h2>
+    <div id="automations" class="grid"></div>
+  </section>
+  <section style="margin-top:1.5rem;">
+    <h2>Integrations</h2>
+    <div id="integrations" class="row"></div>
+  </section>
+  <section style="margin-top:1.5rem;">
+    <div class="card">
+      <h2>Add Device</h2>
+      <div class="row">
+        <input id="dname" placeholder="name">
+        <input id="dkind" placeholder="kind">
+        <button class="btn" onclick="addDevice()">Add</button>
+      </div>
+    </div>
+  </section>
+</main>
+<script>
+const api = (p, opts) => fetch(p, opts).then(r=>r.json()).catch(e=>({error:String(e)}));
+async function refresh(){
+  const st = await api('/api/status');
+  document.getElementById('status').textContent = st.status || 'offline';
+  const devs = await api('/api/devices');
+  const dEl = document.getElementById('devices');
+  dEl.innerHTML = '';
+  (Array.isArray(devs)?devs:[]).forEach(d=>{
+    const c=document.createElement('div'); c.className='card';
+    c.innerHTML = `<h2>${d.name}</h2><div class="muted">${d.kind} · ${d.integration||'local'}</div><div>state: ${d.state||'unknown'}</div>`;
+    dEl.appendChild(c);
+  });
+  const autos = await api('/api/automations');
+  const aEl = document.getElementById('automations');
+  aEl.innerHTML = '';
+  (Array.isArray(autos)?autos:[]).forEach(a=>{
+    const c=document.createElement('div'); c.className='card';
+    c.innerHTML = `<h2>${a.name}</h2><div class="muted">${a.enabled?'enabled':'disabled'}</div><button class="btn" onclick="runAuto('${a.id}')">Run</button>`;
+    aEl.appendChild(c);
+  });
+  const ints = await api('/api/integrations');
+  const iEl = document.getElementById('integrations');
+  iEl.innerHTML = '';
+  (ints.integrations||[]).forEach(n=>{ const s=document.createElement('span'); s.className='card'; s.textContent=n; iEl.appendChild(s);});
+}
+async function addDevice(){
+  const name=document.getElementById('dname').value;
+  const kind=document.getElementById('dkind').value||'sensor';
+  await api('/api/devices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:'',name,kind,integration:null,state:null,updated:0})});
+  refresh();
+}
+async function runAuto(id){ await api('/api/automations/'+id+'/run',{method:'POST'}); alert('triggered'); }
+refresh();
+setInterval(refresh, 10000);
+</script>
+</body>
+</html>
