@@ -1,15 +1,20 @@
+mod homeassistant;
+mod websocket;
+
 use crate::app::AppState;
-use crate::domain::{Automation, Device, Entity, Scene};
+use crate::domain::{Automation, Device, DeviceLink, Entity, Group, Scene};
+use crate::groups;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
-    routing::{get, post},
+    routing::{delete, get, post},
     Json, Router,
 };
-use serde_json::json;
+use serde_json::{json, Value};
 
 pub fn router(_state: AppState) -> Router<AppState> {
     Router::<AppState>::new()
+        .merge(homeassistant::router())
         .route("/api/status", get(status))
         .route("/api/devices", get(list_devices).post(create_device))
         .route("/api/devices/:id", get(get_device).delete(delete_device))
@@ -21,6 +26,11 @@ pub fn router(_state: AppState) -> Router<AppState> {
         .route("/api/automations/import", post(import_automations))
         .route("/api/automations/:id/run", post(run_automation))
         .route("/api/scenes", get(list_scenes).post(create_scene))
+        .route("/api/groups", get(list_groups).post(create_group))
+        .route("/api/groups/:id", delete(delete_group))
+        .route("/api/device_links", get(list_links).post(create_link))
+        .route("/api/device_links/:id", delete(delete_link))
+        .route("/api/zigbee/bind", post(bind_zigbee))
         .route("/api/integrations", get(list_integrations))
 }
 
@@ -166,4 +176,38 @@ async fn create_scene(
 
 async fn list_integrations(State(_state): State<AppState>) -> Json<serde_json::Value> {
     Json(json!({"integrations":["esphome","tesla_fleet","tesla_wall_connector","ziggurat","tuya"]}))
+}
+
+async fn list_groups(State(state): State<AppState>) -> Result<Json<Vec<Group>>, StatusCode> {
+    state.db.list_groups().map(Json).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+async fn create_group(State(state): State<AppState>, Json(body): Json<Value>) -> Result<Json<Group>, StatusCode> {
+    let name = body.get("name").and_then(|v| v.as_str()).unwrap_or("group").to_string();
+    let members: Vec<String> = body.get("members").and_then(|v| v.as_array()).map(|a| a.iter().filter_map(|x| x.as_str().map(|s| s.to_string())).collect()).unwrap_or_default();
+    let g = groups::create_group(&state.db, name, members).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(g))
+}
+async fn delete_group(State(state): State<AppState>, Path(id): Path<String>) -> StatusCode {
+    if state.db.delete_group(&id).is_ok() { StatusCode::NO_CONTENT } else { StatusCode::INTERNAL_SERVER_ERROR }
+}
+
+async fn list_links(State(state): State<AppState>) -> Result<Json<Vec<DeviceLink>>, StatusCode> {
+    state.db.list_links().map(Json).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+async fn create_link(State(state): State<AppState>, Json(body): Json<Value>) -> Result<Json<DeviceLink>, StatusCode> {
+    let source = body.get("source").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let target = body.get("target").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let kind = body.get("kind").and_then(|v| v.as_str()).unwrap_or("link").to_string();
+    let link = groups::link_devices(&state.db, source, target, kind).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(link))
+}
+async fn delete_link(State(state): State<AppState>, Path(id): Path<String>) -> StatusCode {
+    if state.db.delete_link(&id).is_ok() { StatusCode::NO_CONTENT } else { StatusCode::INTERNAL_SERVER_ERROR }
+}
+
+async fn bind_zigbee(State(state): State<AppState>, Json(body): Json<Value>) -> Result<Json<DeviceLink>, StatusCode> {
+    let source = body.get("source").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let target = body.get("target").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let link = groups::link_devices(&state.db, source, target, "zigbee_bind".into()).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(link))
 }

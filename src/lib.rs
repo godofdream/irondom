@@ -3,6 +3,7 @@ pub mod app;
 pub mod automation;
 pub mod config;
 pub mod db;
+pub mod groups;
 pub mod domain;
 pub mod integrations;
 pub mod web;
