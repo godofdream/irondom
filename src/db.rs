@@ -12,7 +12,9 @@ impl Db {
         std::fs::create_dir_all(data_dir)?;
         let path = std::path::Path::new(data_dir).join("irondom.db");
         let conn = Connection::open(path)?;
-        let db = Self { conn: Arc::new(Mutex::new(conn)) };
+        let db = Self {
+            conn: Arc::new(Mutex::new(conn)),
+        };
         db.init_schema()?;
         Ok(db)
     }
@@ -56,7 +58,8 @@ impl Db {
 
     pub fn list_devices(&self) -> anyhow::Result<Vec<Device>> {
         let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare("SELECT id,name,kind,integration,state,updated FROM devices")?;
+        let mut stmt =
+            conn.prepare("SELECT id,name,kind,integration,state,updated FROM devices")?;
         let rows = stmt.query_map([], |r| {
             Ok(Device {
                 id: r.get(0)?,
@@ -76,17 +79,20 @@ impl Db {
 
     pub fn get_device(&self, id: &str) -> anyhow::Result<Option<Device>> {
         let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare("SELECT id,name,kind,integration,state,updated FROM devices WHERE id=?1")?;
-        let res = stmt.query_row(params![id], |r| {
-            Ok(Device {
-                id: r.get(0)?,
-                name: r.get(1)?,
-                kind: r.get(2)?,
-                integration: r.get(3)?,
-                state: r.get(4)?,
-                updated: r.get(5)?,
+        let mut stmt =
+            conn.prepare("SELECT id,name,kind,integration,state,updated FROM devices WHERE id=?1")?;
+        let res = stmt
+            .query_row(params![id], |r| {
+                Ok(Device {
+                    id: r.get(0)?,
+                    name: r.get(1)?,
+                    kind: r.get(2)?,
+                    integration: r.get(3)?,
+                    state: r.get(4)?,
+                    updated: r.get(5)?,
+                })
             })
-        }).optional()?;
+            .optional()?;
         Ok(res)
     }
 
@@ -120,7 +126,9 @@ impl Db {
             })
         })?;
         let mut out = Vec::new();
-        for row in rows { out.push(row?); }
+        for row in rows {
+            out.push(row?);
+        }
         Ok(out)
     }
 
@@ -136,7 +144,8 @@ impl Db {
 
     pub fn list_automations(&self) -> anyhow::Result<Vec<Automation>> {
         let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare("SELECT id,name,trigger_yaml,action_yaml,enabled,updated FROM automations")?;
+        let mut stmt = conn
+            .prepare("SELECT id,name,trigger_yaml,action_yaml,enabled,updated FROM automations")?;
         let rows = stmt.query_map([], |r| {
             Ok(Automation {
                 id: r.get(0)?,
@@ -148,7 +157,9 @@ impl Db {
             })
         })?;
         let mut out = Vec::new();
-        for row in rows { out.push(row?); }
+        for row in rows {
+            out.push(row?);
+        }
         Ok(out)
     }
 
@@ -180,7 +191,9 @@ impl Db {
             })
         })?;
         let mut out = Vec::new();
-        for row in rows { out.push(row?); }
+        for row in rows {
+            out.push(row?);
+        }
         Ok(out)
     }
 

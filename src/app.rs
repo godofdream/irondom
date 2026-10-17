@@ -13,7 +13,11 @@ pub struct AppState {
 pub async fn build_state(config: Config) -> anyhow::Result<AppState> {
     let db = Db::open(&config.data_dir)?;
     let engine = AutomationEngine::new(db.clone());
-    Ok(AppState { config, db, automation_engine: engine })
+    Ok(AppState {
+        config,
+        db,
+        automation_engine: engine,
+    })
 }
 
 pub fn router(state: AppState) -> Router {

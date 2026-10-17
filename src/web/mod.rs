@@ -1,10 +1,5 @@
 use crate::app::AppState;
-use axum::{
-    extract::State,
-    response::Html,
-    routing::get,
-    Router,
-};
+use axum::{extract::State, response::Html, routing::get, Router};
 
 pub fn router() -> Router<AppState> {
     Router::<AppState>::new()

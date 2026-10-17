@@ -7,7 +7,11 @@ pub fn parse_ha_yaml(input: &str) -> anyhow::Result<Vec<Automation>> {
     let seq = v.as_sequence().cloned().unwrap_or_default();
     let mut out = Vec::new();
     for item in seq {
-        let name = item.get("alias").and_then(|x| x.as_str()).unwrap_or("automation").to_string();
+        let name = item
+            .get("alias")
+            .and_then(|x| x.as_str())
+            .unwrap_or("automation")
+            .to_string();
         let trigger = item.get("trigger").cloned().unwrap_or(Value::Null);
         let action = item.get("action").cloned().unwrap_or(Value::Null);
         let trigger_yaml = serde_yaml::to_string(&trigger)?;
@@ -17,7 +21,10 @@ pub fn parse_ha_yaml(input: &str) -> anyhow::Result<Vec<Automation>> {
             name,
             trigger_yaml,
             action_yaml,
-            enabled: item.get("initial_state").and_then(|x| x.as_bool()).unwrap_or(true),
+            enabled: item
+                .get("initial_state")
+                .and_then(|x| x.as_bool())
+                .unwrap_or(true),
             updated: chrono::Utc::now().timestamp(),
         });
     }

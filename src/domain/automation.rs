@@ -21,7 +21,15 @@ pub enum Trigger {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Action {
-    SetState { entity_id: String, value: String },
-    CallService { service: String, data: serde_json::Value },
-    Delay { seconds: u64 },
+    SetState {
+        entity_id: String,
+        value: String,
+    },
+    CallService {
+        service: String,
+        data: serde_json::Value,
+    },
+    Delay {
+        seconds: u64,
+    },
 }

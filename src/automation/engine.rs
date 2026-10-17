@@ -11,7 +11,10 @@ pub struct AutomationEngine {
 impl AutomationEngine {
     pub fn new(db: Db) -> Self {
         let cache = db.list_automations().unwrap_or_default();
-        Self { db, cache: Arc::new(Mutex::new(cache)) }
+        Self {
+            db,
+            cache: Arc::new(Mutex::new(cache)),
+        }
     }
 
     pub fn list(&self) -> Vec<Automation> {
@@ -48,7 +51,9 @@ impl AutomationEngine {
         let now = chrono::Utc::now().format("%H:%M").to_string();
         let list = self.list();
         for a in list {
-            if !a.enabled { continue; }
+            if !a.enabled {
+                continue;
+            }
             if a.trigger_yaml.contains(&now) {
                 let _ = self.run_one(&a.id);
             }
