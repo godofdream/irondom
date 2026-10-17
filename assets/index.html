@@ -3,171 +3,351 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Irondom Dashboard</title>
+<title>Irondom</title>
 <style>
-:root { --bg:#0f172a; --card:#1e293b; --fg:#e2e8f0; --accent:#38bdf8; --muted:#94a3b8; --ok:#22c55e; }
+:root { --bg:#0f172a; --card:#1e293b; --fg:#e2e8f0; --accent:#38bdf8; --muted:#94a3b8; --ok:#22c55e; --danger:#ef4444; --sidebar:#0b1220; }
 * { box-sizing: border-box; }
-body { margin:0; font-family: system-ui, -apple-system, sans-serif; background:var(--bg); color:var(--fg); }
-header { padding:1rem; display:flex; justify-content:space-between; align-items:center; background:#0b1220; position:sticky; top:0; z-index:10; }
-h1 { margin:0; font-size:1.2rem; }
-h2 { margin:1rem 0 .5rem; font-size:1.1rem; color:var(--accent); }
-.container { padding:1rem; max-width:1400px; margin:0 auto; }
-.grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap:1rem; }
-.card { background:var(--card); border-radius:12px; padding:1rem; box-shadow:0 4px 12px rgba(0,0,0,.3); }
+body { margin:0; font-family: system-ui, -apple-system, sans-serif; background:var(--bg); color:var(--fg); display:flex; min-height:100vh; }
+.sidebar { width:240px; background:var(--sidebar); padding:1rem; display:flex; flex-direction:column; gap:.5rem; position:sticky; top:0; height:100vh; overflow:auto; }
+.sidebar h1 { font-size:1.1rem; margin:.5rem 0 1rem; color:var(--accent); }
+.navbtn { background:transparent; color:var(--fg); border:none; text-align:left; padding:.6rem .8rem; border-radius:8px; cursor:pointer; font-size:.95rem; }
+.navbtn:hover { background:#1e293b; }
+.navbtn.active { background:var(--accent); color:#0f172a; font-weight:600; }
+.main { flex:1; display:flex; flex-direction:column; min-width:0; }
+.topbar { background:#0b1220; padding:.8rem 1rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; position:sticky; top:0; z-index:10; }
+.topbar input { flex:1; max-width:400px; }
+.content { padding:1rem; max-width:1600px; margin:0 auto; width:100%; }
+.grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap:1rem; }
+.card { background:var(--card); border-radius:14px; padding:1rem; box-shadow:0 4px 12px rgba(0,0,0,.3); }
+.card h3 { margin:0 0 .3rem; font-size:1rem; }
 .muted { color:var(--muted); font-size:.85rem; }
 .btn { background:var(--accent); color:#0f172a; border:none; padding:.4rem .7rem; border-radius:8px; cursor:pointer; font-weight:600; margin:.2rem; }
-.btn.off { background:#334155; color:var(--fg); }
+.btn.secondary { background:#334155; color:var(--fg); }
+.btn.danger { background:var(--danger); color:#fff; }
 .row { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
-input,select { background:#0b1220; color:var(--fg); border:1px solid #334155; padding:.4rem .6rem; border-radius:6px; }
-.cam { width:100%; border-radius:8px; background:#000; min-height:160px; }
-.ac { display:flex; flex-direction:column; gap:.5rem; }
-@media (max-width:600px){ header{flex-direction:column;gap:.5rem;} }
-.toggle { width:48px; height:26px; border-radius:13px; background:#334155; position:relative; cursor:pointer; }
+input,select,textarea { background:#0b1220; color:var(--fg); border:1px solid #334155; padding:.4rem .6rem; border-radius:6px; }
+.toggle { width:48px; height:26px; border-radius:13px; background:#334155; position:relative; cursor:pointer; border:none; }
 .toggle.on { background:var(--ok); }
 .toggle::after { content:''; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:.2s; }
 .toggle.on::after { left:25px; }
+.cam { width:100%; border-radius:8px; background:#000; min-height:160px; object-fit:cover; }
+.modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:100; }
+.modal { background:var(--card); border-radius:14px; padding:1.2rem; width:min(600px,90vw); max-height:80vh; overflow:auto; }
+.modal h2 { margin-top:0; }
+.section { display:none; }
+.section.active { display:block; }
+@media (max-width:768px){ .sidebar{position:fixed; left:-260px; transition:.2s; z-index:50;} .sidebar.open{left:0;} .main{margin-left:0;} .menu-toggle{display:inline-block;} }
+.menu-toggle { display:none; background:var(--accent); border:none; padding:.4rem .6rem; border-radius:6px; cursor:pointer; }
+.entity-icon { font-size:1.4rem; margin-right:.5rem; }
+.entity-row { display:flex; justify-content:space-between; align-items:center; padding:.6rem 0; border-bottom:1px solid #334155; }
+.entity-row:last-child { border-bottom:none; }
 </style>
 </head>
 <body>
-<header>
-  <h1>Irondom Dashboard</h1>
-  <div class="row">
+<aside class="sidebar" id="sidebar">
+  <h1>Irondom</h1>
+  <button class="navbtn active" data-view="overview">Overview</button>
+  <button class="navbtn" data-view="lights">Lights</button>
+  <button class="navbtn" data-view="climate">Climate / AC</button>
+  <button class="navbtn" data-view="cameras">Cameras</button>
+  <button class="navbtn" data-view="media">Media / TV</button>
+  <button class="navbtn" data-view="sensors">Sensors</button>
+  <button class="navbtn" data-view="automations">Automations</button>
+  <button class="navbtn" data-view="integrations">Integrations</button>
+  <button class="navbtn" data-view="groups">Groups & Links</button>
+  <button class="navbtn" data-view="settings">Settings</button>
+</aside>
+<div class="main">
+  <div class="topbar">
+    <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+    <h2 id="viewTitle">Overview</h2>
+    <input id="search" placeholder="Search entities..." oninput="renderCurrent()">
     <span id="status" class="muted">loading...</span>
-    <button class="btn" onclick="refresh()">Refresh</button>
+    <button class="btn secondary" onclick="refresh()">Refresh</button>
   </div>
-</header>
-<main class="container">
-  <h2>Lights</h2>
-  <div id="lights" class="grid"></div>
-  <h2>Climate / AC</h2>
-  <div id="climate" class="grid"></div>
-  <h2>Cameras</h2>
-  <div id="cameras" class="grid"></div>
-  <h2>Media / TV</h2>
-  <div id="media" class="grid"></div>
-  <h2>Automations</h2>
-  <div id="automations" class="grid"></div>
-  <h2>Integrations</h2>
-  <div id="integrations" class="row"></div>
-  <h2>Add Light Entity</h2>
-  <div class="card">
-    <div class="row">
-      <input id="ename" placeholder="entity id (light.x)">
-      <button class="btn" onclick="addEntity()">Add</button>
+  <div class="content">
+    <div id="overview" class="section active"></div>
+    <div id="lights" class="section"></div>
+    <div id="climate" class="section"></div>
+    <div id="cameras" class="section"></div>
+    <div id="media" class="section"></div>
+    <div id="sensors" class="section"></div>
+    <div id="automations" class="section"></div>
+    <div id="integrations" class="section"></div>
+    <div id="groups" class="section"></div>
+    <div id="settings" class="section"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2 id="modalTitle">Details</h2>
+    <div id="modalBody"></div>
+    <div class="row" style="margin-top:1rem;">
+      <button class="btn secondary" onclick="closeModal()">Close</button>
     </div>
   </div>
-</main>
+</div>
+
 <script>
 let go2rtcUrl = '';
+let allStates = [];
+let allAutomations = [];
+let allGroups = [];
+let currentView = 'overview';
+
 const api = (p, opts) => fetch(p, opts).then(r=>r.json()).catch(e=>({error:String(e)}));
-function domainOf(id){ return id.split('.')[0]; }
+
+function domainOf(id){ return (id||'').split('.')[0]; }
+function friendly(e){ return (e.attributes && e.attributes.friendly_name) || e.entity_id; }
+
 async function refresh(){
   const cfg = await api('/api/config');
   go2rtcUrl = cfg.go2rtc_url || '';
   const st = await api('/api/status');
   document.getElementById('status').textContent = st.status || 'offline';
-  const states = await api('/api/states');
-  const arr = Array.isArray(states)?states:[];
-  renderDomain('lights', arr.filter(e=>domainOf(e.entity_id)==='light'));
-  renderClimate(arr.filter(e=>domainOf(e.entity_id)==='climate'));
-  renderCameras(arr.filter(e=>domainOf(e.entity_id)==='camera'));
-  renderMedia(arr.filter(e=>domainOf(e.entity_id)==='media_player'));
-  const autos = await api('/api/automations');
-  const aEl = document.getElementById('automations');
-  aEl.innerHTML='';
-  (Array.isArray(autos)?autos:[]).forEach(a=>{
-    const c=document.createElement('div'); c.className='card';
-    c.innerHTML = `<h3>${a.name}</h3><div class="muted">${a.enabled?'enabled':'disabled'}</div><button class="btn" onclick="runAuto('${a.id}')">Run</button>`;
-    aEl.appendChild(c);
-  });
-  const ints = await api('/api/integrations');
-  const iEl = document.getElementById('integrations');
-  iEl.innerHTML='';
-  (ints.integrations||[]).forEach(n=>{ const s=document.createElement('span'); s.className='card'; s.textContent=n; iEl.appendChild(s);});
+  allStates = await api('/api/states');
+  if(!Array.isArray(allStates)) allStates = [];
+  allAutomations = await api('/api/automations');
+  if(!Array.isArray(allAutomations)) allAutomations = [];
+  allGroups = await api('/api/groups');
+  if(!Array.isArray(allGroups)) allGroups = [];
+  renderCurrent();
 }
-function renderDomain(containerId, items){
-  const el=document.getElementById(containerId); el.innerHTML='';
-  items.forEach(e=>{
-    const c=document.createElement('div'); c.className='card';
+
+function showView(view){
+  currentView = view;
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  const el = document.getElementById(view);
+  if(el) el.classList.add('active');
+  document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+  const titles = {overview:'Overview',lights:'Lights',climate:'Climate / AC',cameras:'Cameras',media:'Media / TV',sensors:'Sensors',automations:'Automations',integrations:'Integrations',groups:'Groups & Links',settings:'Settings'};
+  document.getElementById('viewTitle').textContent = titles[view]||view;
+  renderCurrent();
+  if(window.innerWidth<=768) document.getElementById('sidebar').classList.remove('open');
+}
+
+function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('open'); }
+
+function filteredStates(domain){
+  const q = (document.getElementById('search').value||'').toLowerCase();
+  return allStates.filter(e => {
+    if(domain && domainOf(e.entity_id)!==domain) return false;
+    if(!q) return true;
+    return e.entity_id.toLowerCase().includes(q) || friendly(e).toLowerCase().includes(q);
+  });
+}
+
+function renderCurrent(){
+  const view = currentView;
+  if(view==='overview') renderOverview();
+  else if(view==='lights') renderDomainView('lights','light');
+  else if(view==='climate') renderDomainView('climate','climate');
+  else if(view==='cameras') renderDomainView('cameras','camera');
+  else if(view==='media') renderDomainView('media','media_player');
+  else if(view==='sensors') renderDomainView('sensors','sensor');
+  else if(view==='automations') renderAutomations();
+  else if(view==='integrations') renderIntegrations();
+  else if(view==='groups') renderGroups();
+  else if(view==='settings') renderSettings();
+}
+
+function renderOverview(){
+  const el = document.getElementById('overview');
+  const domains = ['light','climate','camera','media_player','sensor'];
+  let html = '';
+  domains.forEach(d=>{
+    const items = filteredStates(d);
+    if(items.length===0) return;
+    html += `<h2>${d.charAt(0).toUpperCase()+d.slice(1)}s</h2><div class="grid">`;
+    items.forEach(e=> html += cardHtml(e));
+    html += `</div>`;
+  });
+  // automations summary
+  if(allAutomations.length){
+    html += `<h2>Automations</h2><div class="grid">`;
+    allAutomations.forEach(a=> html += `<div class="card"><h3>${a.name}</h3><div class="muted">${a.enabled?'enabled':'disabled'}</div><button class="btn" onclick="runAuto('${a.id}')">Run</button></div>`);
+    html += `</div>`;
+  }
+  el.innerHTML = html || '<div class="card">No entities yet. Add one in Settings.</div>';
+}
+
+function renderDomainView(container, domain){
+  const el = document.getElementById(container);
+  const items = filteredStates(domain);
+  if(items.length===0){ el.innerHTML = '<div class="card">No entities.</div>'; return; }
+  el.innerHTML = '<div class="grid">' + items.map(cardHtml).join('') + '</div>';
+}
+
+function cardHtml(e){
+  const name = friendly(e);
+  const d = domainOf(e.entity_id);
+  let controls = '';
+  if(d==='light'){
     const on = e.state==='on';
-    c.innerHTML = `<h3>${e.attributes.friendly_name||e.entity_id}</h3>
-      <div class="muted">${e.entity_id}</div>
-      <div>state: ${e.state}</div>
-      <div class="row" style="margin-top:.5rem;">
-        <button class="btn ${on?'':'off'}" onclick="callService('light','turn_on','${e.entity_id}')">On</button>
-        <button class="btn ${on?'off':''}" onclick="callService('light','turn_off','${e.entity_id}')">Off</button>
-      </div>`;
-    el.appendChild(c);
-  });
+    controls = `<button class="toggle ${on?'on':''}" onclick="toggleLight('${e.entity_id}', ${on})" aria-label="toggle"></button>`;
+  } else if(d==='climate'){
+    controls = `<div class="row">
+      <button class="btn secondary" onclick="callService('climate','set_hvac_mode','${e.entity_id}','cool')">Cool</button>
+      <button class="btn secondary" onclick="callService('climate','set_hvac_mode','${e.entity_id}','heat')">Heat</button>
+      <button class="btn secondary" onclick="callService('climate','set_hvac_mode','${e.entity_id}','off')">Off</button>
+    </div>
+    <div class="row" style="margin-top:.5rem;">
+      <input type="number" id="t_${e.entity_id}" value="${(e.attributes && e.attributes.temperature)||e.state||22}" style="width:80px;">
+      <button class="btn" onclick="setTemp('${e.entity_id}')">Set</button>
+    </div>`;
+  } else if(d==='media_player'){
+    controls = `<div class="row">
+      <button class="btn secondary" onclick="callService('media_player','volume_set','${e.entity_id}',0.5)">Vol 50%</button>
+      <button class="btn danger" onclick="callService('media_player','turn_off','${e.entity_id}')">Off</button>
+    </div>`;
+  } else if(d==='camera'){
+    const src = (e.attributes && e.attributes.stream_url) || (go2rtcUrl ? go2rtcUrl.replace(/\/$/,'')+'/api/frame.jpeg?src=' + ((e.attributes && e.attributes.source)||e.entity_id) : '');
+    controls = src ? `<img class="cam" src="${src}" alt="stream" onerror="this.style.display='none'">` : '<div class="muted">No stream configured</div>';
+  } else {
+    controls = `<div class="muted">state: ${e.state}</div>`;
+  }
+  return `<div class="card">
+    <div class="row" style="justify-content:space-between;">
+      <div><h3>${name}</h3><div class="muted">${e.entity_id}</div></div>
+      <div>${controls}</div>
+    </div>
+    <div class="muted" style="margin-top:.5rem;">${formatAttrs(e.attributes)}</div>
+    <div class="row" style="margin-top:.5rem;">
+      <button class="btn secondary" onclick="openModal('${e.entity_id}')">Details</button>
+    </div>
+  </div>`;
 }
-function renderClimate(items){
-  const el=document.getElementById('climate'); el.innerHTML='';
-  items.forEach(e=>{
-    const c=document.createElement('div'); c.className='card ac';
-    const temp = e.attributes.temperature || e.state;
-    c.innerHTML = `<h3>${e.attributes.friendly_name||e.entity_id}</h3>
-      <div class="muted">${e.entity_id}</div>
-      <div>mode: ${e.state}</div>
-      <div>target: ${temp}</div>
-      <div class="row">
-        <button class="btn" onclick="callService('climate','set_hvac_mode','${e.entity_id}','cool')">Cool</button>
-        <button class="btn" onclick="callService('climate','set_hvac_mode','${e.entity_id}','heat')">Heat</button>
-        <button class="btn off" onclick="callService('climate','set_hvac_mode','${e.entity_id}','off')">Off</button>
-      </div>
-      <div class="row">
-        <input type="number" id="t_${e.entity_id}" value="${temp||22}" style="width:80px;">
-        <button class="btn" onclick="setTemp('${e.entity_id}')">Set Temp</button>
-      </div>`;
-    el.appendChild(c);
-  });
+
+function formatAttrs(a){
+  if(!a) return '';
+  try { const o = typeof a==='string'?JSON.parse(a):a; return Object.keys(o).map(k=>`${k}: ${o[k]}`).join(' · '); } catch(e){ return String(a); }
 }
-function renderCameras(items){
-  const el=document.getElementById('cameras'); el.innerHTML='';
-  items.forEach(e=>{
-    const c=document.createElement('div'); c.className='card';
-    const src = e.attributes.stream_url || (go2rtcUrl ? go2rtcUrl.replace(/\/$/,'')+'/api/frame.jpeg?src='+(e.attributes.source||e.entity_id) : '');
-    c.innerHTML = `<h3>${e.attributes.friendly_name||e.entity_id}</h3>
-      <div class="muted">${e.entity_id}</div>
-      ${src ? `<img class="cam" src="${src}" alt="stream" onerror="this.style.display='none'">` : '<div class="muted">No stream URL configured</div>'}
-      ${go2rtcUrl ? `<div class="muted">go2rtc: ${go2rtcUrl}</div>` : ''}`;
-    el.appendChild(c);
-  });
+
+async function toggleLight(id, currentlyOn){
+  await callService('light', currentlyOn?'turn_off':'turn_on', id);
 }
-function renderMedia(items){
-  const el=document.getElementById('media'); el.innerHTML='';
-  items.forEach(e=>{
-    const c=document.createElement('div'); c.className='card';
-    c.innerHTML = `<h3>${e.attributes.friendly_name||e.entity_id}</h3>
-      <div class="muted">${e.entity_id}</div>
-      <div>state: ${e.state}</div>
-      <div class="row">
-        <button class="btn" onclick="callService('media_player','volume_set','${e.entity_id}',0.5)">Vol 50%</button>
-        <button class="btn off" onclick="callService('media_player','turn_off','${e.entity_id}')">Off</button>
-      </div>`;
-    el.appendChild(c);
-  });
-}
+
 async function callService(domain, service, entityId, extra){
   const body = {entity_id: entityId};
-  if (service==='set_temperature') body.temperature = extra;
-  if (service==='set_hvac_mode') body.hvac_mode = extra;
-  if (service==='volume_set') body.volume_level = extra;
+  if(service==='set_temperature') body.temperature = extra;
+  if(service==='set_hvac_mode') body.hvac_mode = extra;
+  if(service==='volume_set') body.volume_level = extra;
   await api('/api/services/'+domain+'/'+service, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
   refresh();
 }
+
 async function setTemp(id){
   const v = document.getElementById('t_'+id).value;
   await callService('climate','set_temperature',id, parseFloat(v));
 }
-async function runAuto(id){ await api('/api/automations/'+id+'/run',{method:'POST'}); alert('triggered'); refresh(); }
+
+async function runAuto(id){ await api('/api/automations/'+id+'/run',{method:'POST'}); alert('Triggered'); refresh(); }
+
+async function openModal(entityId){
+  const e = allStates.find(x=>x.entity_id===entityId);
+  const body = document.getElementById('modalBody');
+  document.getElementById('modalTitle').textContent = friendly(e);
+  let html = `<div class="muted">${entityId}</div><div>State: <b>${e.state}</b></div>`;
+  html += `<div style="margin-top:.5rem;">${formatAttrs(e.attributes)}</div>`;
+  // history
+  const hist = await api('/api/history/period/now');
+  html += `<h3 style="margin-top:1rem;">Recent history</h3>`;
+  if(Array.isArray(hist) && hist.length){
+    hist.forEach(group=>{
+      if(!Array.isArray(group)) return;
+      group.slice(-5).forEach(s=>{ html += `<div class="muted">${s.last_changed}: ${s.state}</div>`; });
+    });
+  } else {
+    html += `<div class="muted">No history.</div>`;
+  }
+  body.innerHTML = html;
+  document.getElementById('modalBackdrop').style.display='flex';
+}
+
+function closeModal(ev){
+  if(!ev || ev.target.id==='modalBackdrop') document.getElementById('modalBackdrop').style.display='none';
+}
+
+function renderAutomations(){
+  const el = document.getElementById('automations');
+  if(!allAutomations.length){ el.innerHTML='<div class="card">No automations.</div>'; return; }
+  el.innerHTML = '<div class="grid">' + allAutomations.map(a=>`<div class="card"><h3>${a.name}</h3><div class="muted">${a.enabled?'enabled':'disabled'}</div><button class="btn" onclick="runAuto('${a.id}')">Run</button></div>`).join('') + '</div>';
+}
+
+function renderIntegrations(){
+  const el = document.getElementById('integrations');
+  api('/api/integrations').then(ints=>{
+    const items = ints.integrations||[];
+    el.innerHTML = '<div class="row">' + items.map(n=>`<span class="card">${n}</span>`).join('') + '</div>';
+  });
+}
+
+function renderGroups(){
+  const el = document.getElementById('groups');
+  let html = '<div class="card"><h3>Create Group</h3><div class="row"><input id="gname" placeholder="group name"><input id="gmembers" placeholder="members comma-separated"><button class="btn" onclick="createGroup()">Create</button></div></div>';
+  html += '<h2>Existing Groups</h2><div class="grid">';
+  allGroups.forEach(g=>{ html += `<div class="card"><h3>${g.name}</h3><div class="muted">${(g.members||[]).join(', ')}</div><div class="muted">integration: ${g.integration||'virtual'}</div></div>`; });
+  html += '</div>';
+  html += '<div class="card" style="margin-top:1rem;"><h3>Link Devices</h3><div class="row"><input id="lsrc" placeholder="source"><input id="ltgt" placeholder="target"><button class="btn" onclick="linkDevices()">Link</button></div></div>';
+  el.innerHTML = html;
+}
+
+async function createGroup(){
+  const name = document.getElementById('gname').value || 'group';
+  const members = (document.getElementById('gmembers').value||'').split(',').map(s=>s.trim()).filter(Boolean);
+  await api('/api/groups', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name, members})});
+  refresh();
+  showView('groups');
+}
+async function linkDevices(){
+  const source = document.getElementById('lsrc').value;
+  const target = document.getElementById('ltgt').value;
+  await api('/api/device_links', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({source, target, kind:'link'})});
+  alert('Linked');
+}
+
+function renderSettings(){
+  const el = document.getElementById('settings');
+  el.innerHTML = `
+    <div class="card">
+      <h3>Add Entity</h3>
+      <div class="row">
+        <input id="ename" placeholder="entity id (light.x)">
+        <button class="btn" onclick="addEntity()">Add</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:1rem;">
+      <h3>Home Assistant YAML Import</h3>
+      <textarea id="yamlInput" rows="8" style="width:100%;" placeholder="- alias: morning..."></textarea>
+      <div class="row" style="margin-top:.5rem;">
+        <button class="btn" onclick="importYaml()">Import</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:1rem;">
+      <h3>go2rtc</h3>
+      <div class="muted">Configure go2rtc_url in irondom.toml to enable camera streams.</div>
+    </div>
+  `;
+}
+
 async function addEntity(){
-  const id=document.getElementById('ename').value;
+  const id = document.getElementById('ename').value;
   if(!id) return;
   await api('/api/states/'+encodeURIComponent(id), {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({state:'off', attributes:{friendly_name:id}})});
   refresh();
 }
+async function importYaml(){
+  const yaml = document.getElementById('yamlInput').value;
+  const res = await api('/api/automations/import', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({yaml})});
+  alert('Imported ' + (Array.isArray(res)?res.length:0) + ' automations');
+  refresh();
+}
+
+// nav wiring
+document.querySelectorAll('.navbtn').forEach(b=> b.addEventListener('click', ()=>showView(b.dataset.view)));
 refresh();
-setInterval(refresh, 10000);
+showView('overview');
 </script>
 </body>
 </html>
